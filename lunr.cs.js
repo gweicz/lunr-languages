@@ -1,26 +1,10 @@
-/*!
- * Lunr languages, `Czech` language
- * https://github.com/MihaiValentin/lunr-languages
- *
- * Copyright 2022, tree
- * http://www.mozilla.org/MPL/
- */
-/*!
- * based on
- * Snowball JavaScript Library v0.3
- * http://code.google.com/p/urim/
- * http://snowball.tartarus.org/
- *
- * Copyright 2010, Oleg Mazko
- * http://www.mozilla.org/MPL/
- */
+var loadModule = require('hunspell-asm').loadModule;
+var fs = require('fs');
 
-/**
- * export the module via AMD, CommonJS or as a browser global
- * Export code from https://github.com/umdjs/umd/blob/master/returnExports.js
- */
-;
-(function(root, factory) {
+var path = require('path');
+var base = path.dirname(require.resolve('dictionary-cs'));
+
+(function (root, factory) {
   if (typeof define === 'function' && define.amd) {
     // AMD. Register as an anonymous module.
     define(factory)
@@ -35,13 +19,29 @@
     // Browser globals (root is window)
     factory()(root.lunr);
   }
-}(this, function() {
+}(this, async function () {  
+    
+  var hunspellFactory = await loadModule()
+  
+  const getFile = function (fileName) {
+    const file = fs.readFileSync(path.join(base, fileName));
+    const buffer = new Uint8Array(file);
+    return hunspellFactory.mountBuffer(buffer, fileName);  
+  }
+  
+  const affFile = getFile('index.aff');  
+  const dictFile = getFile('index.dic');   
+
+  var hunspell = hunspellFactory.create(affFile, dictFile);
+
+  console.log('hunspell loaded');
+
   /**
    * Just return a value to define the module export.
    * This example returns an object, but the module
    * can return a function as the exported value.
    */
-  return function(lunr) {
+  return function (lunr) {
     /* throw error if lunr is not yet included */
     if ('undefined' === typeof lunr) {
       throw new Error('Lunr is not present. Please include / require Lunr before this script.');
@@ -53,7 +53,7 @@
     }
 
     /* register specific locale function */
-    lunr.cs = function() {
+    lunr.cs = function () {
       this.pipeline.reset();
       this.pipeline.add(
         lunr.cs.trimmer,
@@ -77,292 +77,46 @@
     lunr.Pipeline.registerFunction(lunr.cs.trimmer, 'trimmer-cs');
 
     /* lunr stemmer function */
-    lunr.cs.stemmer = (function() {
+    lunr.cs.stemmer = (function () {
       /* create the wrapped stemmer object */
-      var Among = lunr.stemmerSupport.Among,
+      var
         SnowballProgram = lunr.stemmerSupport.SnowballProgram,
-        st = new function GermanStemmer() {
-          var a_0 = [new Among("", -1, 6), new Among("U", 0, 2),
-              new Among("Y", 0, 1), new Among("\u00E4", 0, 3),
-              new Among("\u00F6", 0, 4), new Among("\u00FC", 0, 5)
-            ],
-            a_1 = [
-              new Among("e", -1, 2), new Among("em", -1, 1),
-              new Among("en", -1, 2), new Among("ern", -1, 1),
-              new Among("er", -1, 1), new Among("s", -1, 3),
-              new Among("es", 5, 2)
-            ],
-            a_2 = [new Among("en", -1, 1),
-              new Among("er", -1, 1), new Among("st", -1, 2),
-              new Among("est", 2, 1)
-            ],
-            a_3 = [new Among("ig", -1, 1),
-              new Among("lich", -1, 1)
-            ],
-            a_4 = [new Among("end", -1, 1),
-              new Among("ig", -1, 2), new Among("ung", -1, 1),
-              new Among("lich", -1, 3), new Among("isch", -1, 2),
-              new Among("ik", -1, 2), new Among("heit", -1, 3),
-              new Among("keit", -1, 4)
-            ],
-            g_v = [17, 65, 16, 1, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 8, 0, 32, 8
-            ],
-            g_s_ending = [117, 30, 5],
-            g_st_ending = [
-              117, 30, 4
-            ],
-            I_x, I_p2, I_p1, sbp = new SnowballProgram();
-          this.setCurrent = function(word) {
+        sbp = new SnowballProgram(),
+        st = new function HungarianStemmer() {
+          this.setCurrent = function (word) {
             sbp.setCurrent(word);
           };
-          this.getCurrent = function() {
+
+          this.getCurrent = function () {
             return sbp.getCurrent();
           };
 
-          function habr1(c1, c2, v_1) {
-            if (sbp.eq_s(1, c1)) {
-              sbp.ket = sbp.cursor;
-              if (sbp.in_grouping(g_v, 97, 252)) {
-                sbp.slice_from(c2);
-                sbp.cursor = v_1;
-                return true;
-              }
-            }
-            return false;
-          }
+          this.stem = function () {
+            const word = sbp.getCurrent();
 
-          function r_prelude() {
-            var v_1 = sbp.cursor,
-              v_2, v_3, v_4, v_5;
-            while (true) {
-              v_2 = sbp.cursor;
-              sbp.bra = v_2;
-              if (sbp.eq_s(1, "\u00DF")) {
-                sbp.ket = sbp.cursor;
-                sbp.slice_from("ss");
-              } else {
-                if (v_2 >= sbp.limit)
-                  break;
-                sbp.cursor = v_2 + 1;
-              }
-            }
-            sbp.cursor = v_1;
-            while (true) {
-              v_3 = sbp.cursor;
-              while (true) {
-                v_4 = sbp.cursor;
-                if (sbp.in_grouping(g_v, 97, 252)) {
-                  v_5 = sbp.cursor;
-                  sbp.bra = v_5;
-                  if (habr1("u", "U", v_4))
-                    break;
-                  sbp.cursor = v_5;
-                  if (habr1("y", "Y", v_4))
-                    break;
-                }
-                if (v_4 >= sbp.limit) {
-                  sbp.cursor = v_3;
-                  return;
-                }
-                sbp.cursor = v_4 + 1;
-              }
-            }
-          }
+            const stemmedWords = hunspell.stem(word);
 
-          function habr2() {
-            while (!sbp.in_grouping(g_v, 97, 252)) {
-              if (sbp.cursor >= sbp.limit)
-                return true;
-              sbp.cursor++;
-            }
-            while (!sbp.out_grouping(g_v, 97, 252)) {
-              if (sbp.cursor >= sbp.limit)
-                return true;
-              sbp.cursor++;
-            }
-            return false;
-          }
+            let resultWord = word;
 
-          function r_mark_regions() {
-            I_p1 = sbp.limit;
-            I_p2 = I_p1;
-            var c = sbp.cursor + 3;
-            if (0 <= c && c <= sbp.limit) {
-              I_x = c;
-              if (!habr2()) {
-                I_p1 = sbp.cursor;
-                if (I_p1 < I_x)
-                  I_p1 = I_x;
-                if (!habr2())
-                  I_p2 = sbp.cursor;
-              }
+            if (stemmedWords.length > 0) {
+              resultWord = stemmedWords[0];
+              console.log(word, stemmedWords.join(' '))
             }
-          }
+            else {
+              console.log("NOT STEMMED", word)
+            }
 
-          function r_postlude() {
-            var among_var, v_1;
-            while (true) {
-              v_1 = sbp.cursor;
-              sbp.bra = v_1;
-              among_var = sbp.find_among(a_0, 6);
-              if (!among_var)
-                return;
-              sbp.ket = sbp.cursor;
-              switch (among_var) {
-                case 1:
-                  sbp.slice_from("y");
-                  break;
-                case 2:
-                case 5:
-                  sbp.slice_from("u");
-                  break;
-                case 3:
-                  sbp.slice_from("a");
-                  break;
-                case 4:
-                  sbp.slice_from("o");
-                  break;
-                case 6:
-                  if (sbp.cursor >= sbp.limit)
-                    return;
-                  sbp.cursor++;
-                  break;
-              }
-            }
-          }
+            sbp.setCurrent(resultWord);
 
-          function r_R1() {
-            return I_p1 <= sbp.cursor;
-          }
-
-          function r_R2() {
-            return I_p2 <= sbp.cursor;
-          }
-
-          function r_standard_suffix() {
-            var among_var, v_1 = sbp.limit - sbp.cursor,
-              v_2, v_3, v_4;
-            sbp.ket = sbp.cursor;
-            among_var = sbp.find_among_b(a_1, 7);
-            if (among_var) {
-              sbp.bra = sbp.cursor;
-              if (r_R1()) {
-                switch (among_var) {
-                  case 1:
-                    sbp.slice_del();
-                    break;
-                  case 2:
-                    sbp.slice_del();
-                    sbp.ket = sbp.cursor;
-                    if (sbp.eq_s_b(1, "s")) {
-                      sbp.bra = sbp.cursor;
-                      if (sbp.eq_s_b(3, "nis"))
-                        sbp.slice_del();
-                    }
-                    break;
-                  case 3:
-                    if (sbp.in_grouping_b(g_s_ending, 98, 116))
-                      sbp.slice_del();
-                    break;
-                }
-              }
-            }
-            sbp.cursor = sbp.limit - v_1;
-            sbp.ket = sbp.cursor;
-            among_var = sbp.find_among_b(a_2, 4);
-            if (among_var) {
-              sbp.bra = sbp.cursor;
-              if (r_R1()) {
-                switch (among_var) {
-                  case 1:
-                    sbp.slice_del();
-                    break;
-                  case 2:
-                    if (sbp.in_grouping_b(g_st_ending, 98, 116)) {
-                      var c = sbp.cursor - 3;
-                      if (sbp.limit_backward <= c && c <= sbp.limit) {
-                        sbp.cursor = c;
-                        sbp.slice_del();
-                      }
-                    }
-                    break;
-                }
-              }
-            }
-            sbp.cursor = sbp.limit - v_1;
-            sbp.ket = sbp.cursor;
-            among_var = sbp.find_among_b(a_4, 8);
-            if (among_var) {
-              sbp.bra = sbp.cursor;
-              if (r_R2()) {
-                switch (among_var) {
-                  case 1:
-                    sbp.slice_del();
-                    sbp.ket = sbp.cursor;
-                    if (sbp.eq_s_b(2, "ig")) {
-                      sbp.bra = sbp.cursor;
-                      v_2 = sbp.limit - sbp.cursor;
-                      if (!sbp.eq_s_b(1, "e")) {
-                        sbp.cursor = sbp.limit - v_2;
-                        if (r_R2())
-                          sbp.slice_del();
-                      }
-                    }
-                    break;
-                  case 2:
-                    v_3 = sbp.limit - sbp.cursor;
-                    if (!sbp.eq_s_b(1, "e")) {
-                      sbp.cursor = sbp.limit - v_3;
-                      sbp.slice_del();
-                    }
-                    break;
-                  case 3:
-                    sbp.slice_del();
-                    sbp.ket = sbp.cursor;
-                    v_4 = sbp.limit - sbp.cursor;
-                    if (!sbp.eq_s_b(2, "er")) {
-                      sbp.cursor = sbp.limit - v_4;
-                      if (!sbp.eq_s_b(2, "en"))
-                        break;
-                    }
-                    sbp.bra = sbp.cursor;
-                    if (r_R1())
-                      sbp.slice_del();
-                    break;
-                  case 4:
-                    sbp.slice_del();
-                    sbp.ket = sbp.cursor;
-                    among_var = sbp.find_among_b(a_3, 2);
-                    if (among_var) {
-                      sbp.bra = sbp.cursor;
-                      if (r_R2() && among_var == 1)
-                        sbp.slice_del();
-                    }
-                    break;
-                }
-              }
-            }
-          }
-          this.stem = function() {
-            var v_1 = sbp.cursor;
-            r_prelude();
-            sbp.cursor = v_1;
-            r_mark_regions();
-            sbp.limit_backward = v_1;
-            sbp.cursor = sbp.limit;
-            r_standard_suffix();
-            sbp.cursor = sbp.limit_backward;
-            r_postlude();
-            return true;
-          }
+            return true
+          };
         };
 
       /* and return a function that stems a word for the current locale */
-      return function(token) {
+      return function (token) {
         // for lunr version 2
         if (typeof token.update === "function") {
-          return token.update(function(word) {
+          return token.update(function (word) {
             st.setCurrent(word);
             st.stem();
             return st.getCurrent();
@@ -375,10 +129,11 @@
       }
     })();
 
-    lunr.Pipeline.registerFunction(lunr.cs.stemmer, 'stemmer-de');
+    lunr.Pipeline.registerFunction(lunr.cs.stemmer, 'stemmer-cs');
 
-    lunr.cs.stopWordFilter = lunr.generateStopWordFilter('aber alle allem allen aller alles als also am an ander andere anderem anderen anderer anderes anderm andern anderr anders auch auf aus bei bin bis bist da damit dann das dasselbe dazu daß dein deine deinem deinen deiner deines dem demselben den denn denselben der derer derselbe derselben des desselben dessen dich die dies diese dieselbe dieselben diesem diesen dieser dieses dir doch dort du durch ein eine einem einen einer eines einig einige einigem einigen einiger einiges einmal er es etwas euch euer eure eurem euren eurer eures für gegen gewesen hab habe haben hat hatte hatten hier hin hinter ich ihm ihn ihnen ihr ihre ihrem ihren ihrer ihres im in indem ins ist jede jedem jeden jeder jedes jene jenem jenen jener jenes jetzt kann kein keine keinem keinen keiner keines können könnte machen man manche manchem manchen mancher manches mein meine meinem meinen meiner meines mich mir mit muss musste nach nicht nichts noch nun nur ob oder ohne sehr sein seine seinem seinen seiner seines selbst sich sie sind so solche solchem solchen solcher solches soll sollte sondern sonst um und uns unse unsem unsen unser unses unter viel vom von vor war waren warst was weg weil weiter welche welchem welchen welcher welches wenn werde werden wie wieder will wir wird wirst wo wollen wollte während würde würden zu zum zur zwar zwischen über'.split(' '));
+    lunr.cs.stopWordFilter = lunr.generateStopWordFilter('a aby ahoj aj ale anebo ani aniž ano asi aspoň atd atp az ačkoli až bez beze blízko bohužel brzo bude budem budeme budes budete budeš budou budu by byl byla byli bylo byly bys byt být během chce chceme chcete chceš chci chtít chtějí chuť chuti ci clanek clanku clanky co coz což cz daleko dalsi další den deset design devatenáct devět dnes do dobrý docela dva dvacet dvanáct dvě dál dále děkovat děkujeme děkuji email ho hodně i jak jakmile jako jakož jde je jeden jedenáct jedna jedno jednou jedou jeho jehož jej jeji jejich její jelikož jemu jen jenom jenž jeste jestli jestliže ještě jež ji jich jimi jinak jine jiné jiz již jsem jses jseš jsi jsme jsou jste já jí jím jíž jšte k kam každý kde kdo kdy kdyz když ke kolik kromě ktera ktere kteri kterou ktery která které který kteři kteří ku kvůli ma mají mate me mezi mi mit mne mnou mně moc mohl mohou moje moji možná muj musí muze my má málo mám máme máte máš mé mí mít mě můj může na nad nade nam napiste napište naproti nas nasi načež naše naši ne nebo nebyl nebyla nebyli nebyly nechť nedělají nedělá nedělám neděláme neděláte neděláš neg nejsi nejsou nemají nemáme nemáte neměl neni není nestačí nevadí nez než nic nich nimi nove novy nové nový nula ná nám námi nás náš ní ním ně něco nějak někde někdo němu němuž o od ode on ona oni ono ony osm osmnáct pak patnáct po pod podle pokud potom pouze pozdě pořád prave pravé pred pres pri pro proc prostě prosím proti proto protoze protože proč prvni první práve pta pět před přede přes přese při přičemž re rovně s se sedm sedmnáct si sice skoro smí smějí snad spolu sta sto strana sté sve svych svym svymi své svých svým svými svůj ta tady tak take takhle taky takze také takže tam tamhle tamhleto tamto tato te tebe tebou teď tedy tema ten tento teto ti tim timto tipy tisíc tisíce to tobě tohle toho tohoto tom tomto tomu tomuto toto trošku tu tuto tvoje tvá tvé tvůj ty tyto téma této tím tímto tě těm těma těmu třeba tři třináct u určitě uz už v vam vas vase vaše vaši ve vedle večer vice vlastně vsak vy vám vámi vás váš více však všechen všechno všichni vůbec vždy z za zatímco zač zda zde ze zpet zpravy zprávy zpět čau či článek článku články čtrnáct čtyři šest šestnáct že'.split(' '));
 
-    lunr.Pipeline.registerFunction(lunr.cs.stopWordFilter, 'stopWordFilter-de');
+    lunr.Pipeline.registerFunction(lunr.cs.stopWordFilter, 'stopWordFilter-cs');
   };
 }))
+
